@@ -5,24 +5,23 @@
 # Quantitative analysis of homogeneous or stratified microvolumes applying the model "PAP"
 # by Pouchou, Jean-Louis and Pichoir, Françoise, 1991
 
-# All equations are referenced by their number in the paper, e.g. (1) for equation 1.
-# The functions are adapted to work with HyperSpy, a Python library for analysis of multi-dimensional data.
+# All equations are referenced by their number in the paper in the Notes section of the docstring.
 
 # Made as a part of my master thesis in nanotechnology at NTNU, spring 2023
 
 ###################################################################################################
 
-import hyperspy.api as hs
+# This file is for:
+# F, the area of the phi(rho z) curve. This is the generated intensity.
+
 import numpy as np
 
 from PAP_functions.PAP_helper_functions import theoretical_energy
 
 
-# calculating F, the area of the phi(rho z) curve
+# (1) 1/S - deceleration factor
 
-## (1) deceleration factor, 1/S
-
-### Q_l^A, the ionization cross section
+## (1a) Q(U) - the ionization cross section
 
 
 def set_m_small(*, line: str) -> float:
@@ -61,7 +60,7 @@ def set_m_small(*, line: str) -> float:
 
 def ionization_cross_section_Q(*, e0: float, line: str) -> float:
     """
-    Gives the ionization cross section for a given line and nominal beam energy, Q.
+    Gives the ionization cross section for a given line and nominal beam energy, Q(U).
 
     Parameters
     ----------
@@ -73,13 +72,15 @@ def ionization_cross_section_Q(*, e0: float, line: str) -> float:
     Returns
     -------
     float
-         Q_l^A(U), the ionization cross section.
+         Q(U), the ionization cross section.
 
     Notes
     -----
     It is "proportional to", but the constants of proportionality are the same for all lines.
+    The PAP paper writes "Q_l^A(E_0)", where l is the level, A is the atomic number and E_0 is the nominal beam energy.
+    However, writing Q(U) is more efficient.
 
-    .. math:: Q_l^A(U) \propto ln(U) / (U^m_small * E_c^2)
+    .. math:: Q(U) \propto ln(U) / (U^m_small * E_c^2)
 
     Equation (10) in the PAP-paper.
     """
@@ -91,22 +92,22 @@ def ionization_cross_section_Q(*, e0: float, line: str) -> float:
     return np.log(u) / (u**m_small * e_c**2)
 
 
-### dE/drhos, deceleration of electrons, or average energy loss
+### (1b) dE/drhos - energy loss for the electrons
 
 
 def mean_atomic_mass_M(
-    *, array_C: np.array, array_Z: np.array, array_A: np.array
+    *, array_C: np.ndarray, array_Z: np.ndarray, array_A: np.ndarray
 ) -> float:
     """
     Calculate M, the mean atomic mass of the material, from the arrays of atomic information.
 
     Parameters
     ----------
-    array_C : np.array of floats
+    array_C : np.ndarray of floats
         The array of mass concentrations, in wt%.
-    array_Z : np.array of ints
+    array_Z : np.ndarray of ints
         The array of atomic numbers.
-    array_A : np.array of floats
+    array_A : np.ndarray of floats
         The array of atomic masses, in Da (Dalton)
 
     Returns
@@ -146,18 +147,18 @@ def ionization_potential_Ji(*, z_i: float) -> float:
 
 
 def mean_ionzation_potential_J(
-    *, array_C: np.array, array_Z: np.array, array_A: np.array
+    *, array_C: np.ndarray, array_Z: np.ndarray, array_A: np.ndarray
 ) -> float:
     """
     Calulate J, the mean ionization potential of the specimen.
 
     Parameters
     ----------
-    array_C : np.array of floats
+    array_C : np.ndarray of floats
         Mass concentrations, in wt%.
-    array_Z : np.array of ints
+    array_Z : np.ndarray of ints
         Atomic numbers.
-    array_A : np.array of floats
+    array_A : np.ndarray of floats
         Atomic masses, in Da (Dalton).
 
     Returns
@@ -229,18 +230,18 @@ def energy_loss_dE_drhos(*, m: float, j: float, f_of_v: float) -> float:
 
 
 def whole_dE_drhos(
-    *, array_C: np.array, array_Z: np.array, array_A: np.array, e0: float
+    *, array_C: np.ndarray, array_Z: np.ndarray, array_A: np.ndarray, e0: float
 ) -> float:
     """
     Calculate dE/drhos for a array of elements at a given beam energy.
 
     Parameters
     ----------
-    array_C : np.array of floats
+    array_C : np.ndarray of floats
         Mass concentrations, in wt%.
-    array_Z : np.array of ints
+    array_Z : np.ndarray of ints
         Atomic numbers.
-    array_A : np.array of floats
+    array_A : np.ndarray of floats
         Atomic masses, in Da (Dalton).
     e0 : float
         Beam energy, in keV.
@@ -317,3 +318,176 @@ def deceleration_factor_one_over_S(
             / (1 + (-0.5 + 0.25 * j) - m_small) ** 2
         )
     )
+
+
+## (2) R - backscattering loss factor
+
+# - R is the backscatter loss factor
+# - $\bar{Z}_b$ is the mean atomic number of the backscattered electrons, weighted
+# - $\bar{\eta}$ is the mean backscattering coefficient
+
+# - $\bar{W}$ is
+# - $G(U_0)$ is from Coulon and Zeller (28)
+# - $U_0$ is the overvoltage, $E_0/E_c$
+
+
+def mean_atomic_number_Zb(*, array_C: np.ndarray, array_Z: np.ndarray) -> float:
+    """
+    Calculate the (weighted) mean atomic number of the backscattered electrons.
+
+    Parameters
+    ----------
+    array_C : np.ndarray
+        Concentrations, in wt%.
+    array_Z : np.ndarray
+        Atomic numbers.
+
+    Returns
+    -------
+    float
+        Weighted mean atomic number of the backscattered electrons.
+
+    Notes
+    -----
+    Defined in Appendix 1 of the PAP-paper.
+    """
+    sum_Zb = 0
+    for i in range(len(array_C)):
+        sum_Zb += array_C[i] * array_Z[i] ** 0.5
+    return sum_Zb**2
+
+
+def mean_backscattering_coefficient_eta(*, zb: float) -> float:
+    """
+    Calculate the mean backscattering coefficient, \bar{\eta}.
+    "The slight variation of the backscatter coefficient with energy has been neglected."
+
+    Parameters
+    ----------
+    zb : float
+        Mean atomic number.
+
+    Returns
+    -------
+    float
+        Mean backscattering coefficient.
+
+    Notes
+    -----
+    Defined in Appendix 1 of the PAP-paper.
+    """
+    return 1.75e-3 * zb + 0.37 * (1 - np.exp(-0.015 * zb**1.3))
+
+
+def backscattering_factor_R(
+    *, array_C: np.ndarray, array_Z: np.ndarray, u0: float
+) -> float:
+    """
+    Calculate the backscattering loss factor, R.
+    "The term G(U0) is extracted from the theoretical model of Coulon and Zeller (28)."
+
+    Parameters
+    ----------
+    array_C : np.ndarray
+        Concentrations, in wt%.
+    array_Z : np.ndarray
+        Atomic numbers.
+    u0 : float
+        Overvoltage, keV.
+
+    Returns
+    -------
+    float
+        R - the backscattering loss factor.
+
+    Notes
+    -----
+    Defined in Appendix 1 of the PAP-paper.
+
+    .. math:: R = 1 - \eta \bar{W} (1 - G(U_0)))
+    """
+    zb = mean_atomic_number_Zb(array_C=array_C, array_Z=array_Z)
+    eta = mean_backscattering_coefficient_eta(zb=zb)
+
+    # Calculate \bar{W} (which is work? I am not sure, but it is a constant only used here)
+    w = 0.595 + eta / 3.7 + eta**4.55
+
+    # Calculate G(U0), with the help of two intermediate functions
+    j_gu = 1 + u0 * (np.log(u0) - 1)
+    q_gu = (2 * w - 1) / (1 - w)
+    g_of_u = (u0 - 1 - (1 - 1 / u0 ** (1 + q_gu)) / (1 + q_gu)) / ((2 + q_gu) * j_gu)
+
+    return 1 - eta * w * (1 - g_of_u)
+
+
+## Putting 1/S and R together
+
+
+def area_F(
+    *,
+    array_C: np.ndarray,
+    array_Z: np.ndarray,
+    array_A: np.ndarray,
+    e0: float,
+    line: str,
+    use_q: str = "multiply",
+) -> float:
+    """
+    Calculate the area F.
+    The PAP-paper is not clear on how to use Q(U), see the notes below.
+
+    Parameters
+    ----------
+    array_C : np.ndarray
+        Array of concentrations, in wt%.
+    array_Z : np.ndarray
+        Array of atomic numbers.
+    array_A : np.ndarray
+        Array of atomic weights, in Da.
+    e0 : float
+        Beam energy, in keV.
+    line : str
+        Line of interest, e.g. 'Ga_La'.
+    use_q : str, optional
+        How to use Q(U). Options are 'multiply', 'divide', or 'ignore'.
+
+    Returns
+    -------
+    float
+        The area F, of the $phi(rho z)$-curve.
+
+    Notes
+    -----
+    There is a slight contradictive equation.
+    In equation (2) it is stated that $n_A = C_A (N^0/A) Q(U) F$, and in equation (3) it is stated that $n_A = C_A (N^0/A) (R/S)$.
+    This implies that $(R/S) = Q(U) F$.
+    However, equation (13) states that $F = (R/S) \cdot Q(U)$, which is a contradiction to the previous equations.
+
+    It is assumed that Eq. (13) is correct, but the function allows for the user to choose how to use $Q(U)$.
+    """
+    e_c = theoretical_energy(line=line)
+    u = e0 / e_c
+    q = ionization_cross_section_Q(line=line, e0=e0)
+
+    # Calculate 1/S
+    small_m = set_m_small(line=line)
+    big_m = mean_atomic_mass_M(array_C=array_C, array_A=array_A, array_Z=array_Z)
+    j = mean_ionzation_potential_J(array_C=array_C, array_A=array_A, array_Z=array_Z)
+    one_over_S = deceleration_factor_one_over_S(
+        u0=u, e_c=e_c, j=j, m_big=big_m, m_small=small_m
+    )
+
+    # Calculate R
+    r = backscattering_factor_R(array_C=array_C, array_Z=array_Z, u0=u)
+
+    # Return F, depending on the use_q argument
+    if use_q == "multiply":
+        return r * one_over_S * q
+    elif use_q == "divide":
+        return r * one_over_S / q
+    elif use_q == "ignore":
+        return r * one_over_S
+    else:
+        raise ValueError(
+            f'Invalid use_q argument: {use_q}, must be "multiply", "divide", or "ignore"'
+        )
