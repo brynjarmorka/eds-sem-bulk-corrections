@@ -71,7 +71,7 @@ def average_depth_of_ionization_R_bar(*, big_f: float, u: float, zb: float) -> f
     -----
     Equation 28.
 
-    "If $ F/\bar{R} < \phi(0) $, impose the condition $ \bar{R} = F/\phi(0) $"
+    "If $ F/\\bar{R} < \phi(0) $, impose the condition $ \\bar{R} = F/\phi(0) $"
     I guess the above statement is for numerical stability, but I'm not sure.
     """
     x = 1 + 1.3 * np.log(zb)
@@ -103,7 +103,7 @@ def initial_slope_P(*, big_f: float, r_bar: float, zb: float, u: float) -> float
     -----
     Equation 29.
 
-    "If necessary, limit the value $ g \cdot h^4 $ to the value $ 0.9 \cdot b\cdot  \bar{R}^2 \cdot [b - 2 \phi(0)/F] $"
+    "If necessary, limit the value $ g \cdot h^4 $ to the value $ 0.9 \cdot b\cdot  \\bar{R}^2 \cdot [b - 2 \phi(0)/F] $"
     I do not think that is necessary.
     """
     g = 0.22 * np.log(4 * zb) * (1 - 2 * np.exp(-zb * (u - 1) / 15))
@@ -118,7 +118,7 @@ def factor_small_b(*, r_bar: float, big_f: float, phi_zero: float) -> float:
     Parameters
     ----------
     r_bar : float
-        \bar{R}, average depth of ionization.
+        \\bar{R}, average depth of ionization.
     big_f : float
         F, area of $phi(rho z)$
     phi_zero : float
@@ -153,7 +153,7 @@ def factor_small_a(
     phi_zero : float
         phi(0), surface ionization.
     r_bar : float
-        \bar{R}, average depth of ionization.
+        \\bar{R}, average depth of ionization.
 
     Returns
     -------
@@ -254,11 +254,11 @@ def factor_big_a(
     return (big_b / b + phi_zero - b * big_f) * (1 + epsilon) / epsilon
 
 
-def emergent_intensity_f_of_chi(
+def emergent_intensity_F_of_chi(
     *, chi: float, phi_zero: float, big_b: float, b: float, big_a: float, epsilon: float
 ) -> float:
     """
-    The emergent intensity $f(\chi)$.
+    The emergent intensity $F(\chi)$.
 
     Parameters
     ----------
@@ -278,7 +278,7 @@ def emergent_intensity_f_of_chi(
     Returns
     -------
     float
-        _description_
+        $F(\chi)$
     """
     return (
         phi_zero + big_b / (b + chi) - big_a * b * epsilon / (b * (1 + epsilon) + chi)
@@ -292,8 +292,35 @@ def absorption_correction(
     e0: float,
     line: str,
     TOA: float = 35.0,
-    use_q: str = "multiply"
+    use_q: str = "divide",
 ) -> float:
+    """
+    Calculate the absorption correction, f(chi) = F(chi) / F
+
+    Parameters
+    ----------
+    elements : np.ndarray
+        Elements in the sample.
+    wt_concentrations : np.ndarray
+        Weight concentrations, wt%.
+    e0 : float
+        Beam energy, keV.
+    line : str
+        X-ray line, e.g. "Mg_Ka".
+    TOA : float, optional
+        Take-off angle of the EDS detector, by default 35.0
+    use_q : str, optional
+        See area F in PAP_area_F.py, by default "divide"
+
+    Returns
+    -------
+    float
+        The absorption correction, f(chi) = F(chi) / F
+
+    Notes
+    -----
+    Page 40 in the PAP-paper.
+    """
     e_c = theoretical_energy(line=line)
     u = e0 / e_c
     array_C, array_A, array_Z = get_C_A_Z_arrays(
@@ -323,7 +350,7 @@ def absorption_correction(
         b=b, big_f=big_F, epsilon=epsilon, phi_zero=phi_zero, big_b=big_b
     )
 
-    f_of_chi = emergent_intensity_f_of_chi(
+    f_of_chi = emergent_intensity_F_of_chi(
         chi=chi, phi_zero=phi_zero, big_b=big_b, b=b, big_a=big_a, epsilon=epsilon
     )
 
@@ -332,17 +359,44 @@ def absorption_correction(
 
 def parameterization_phi_of_rhoz(
     *,
+    rhoz: np.ndarray,
     elements: np.ndarray,
     wt_concentrations: np.ndarray,
     e0: float,
     line: str,
     TOA: float = 35.0,
-    use_q: str = "multiply",
-    rhoz: np.ndarray
+    use_q: str = "divide",
 ) -> np.ndarray:
-    ...
-    # parameterization of phi(rho z)
+    """
+    Gives the parameterization of phi(rho z) for a range of (rho z).
+    Used for e.g. plotting.
 
+    Parameters
+    ----------
+    rhoz : np.ndarray
+        Mass thickness, rho z, in g/cm^2. The X-axis.
+    elements : np.ndarray
+        Elements in the sample.
+    wt_concentrations : np.ndarray
+        Weight concentrations, wt%.
+    e0 : float
+        Beam energy, keV.
+    line : str
+        X-ray line, e.g. "Mg_Ka".
+    TOA : float, optional
+        Take-off angle of the EDS detector, by default 35.0
+    use_q : str, optional
+        See area F in PAP_area_F.py, by default "divide"
+
+    Returns
+    -------
+    np.ndarray
+        phi(rho z)
+
+    Notes
+    -----
+    Equation 22 in the PAP-paper.
+    """
     e_c = theoretical_energy(line=line)
     u = e0 / e_c
     array_C, array_A, array_Z = get_C_A_Z_arrays(
@@ -372,7 +426,25 @@ def parameterization_phi_of_rhoz(
         b=b, big_f=big_F, epsilon=epsilon, phi_zero=phi_zero, big_b=big_b
     )
 
-    # A * np.exp(- a * rhoz) + (B * rhoz + phi_zero - A) * np.exp(- b * rhoz)
+    # checking the values of the parameters
+    # print(f"big_a = {big_a}")
+    # print(f"big_b = {big_b}")
+    # print(f"a = {a}")
+    # print(f"b = {b}")
+
+    # print(f"big_F = {big_F}")
+    # print(f"phi_zero = {phi_zero}")
+    # print(f"r_bar = {r_bar}")
+    # print(f"slope p = {p}")
+
+    # # calculating F, phi(0), R, and P agian
+    # # F = A/a + (phi(0)-A)/b + B/b**2
+    # print(f"F = {big_a/a + (phi_zero-big_a)/b + big_b/b**2}")
+    # # R = (A/a**2 + (phi(0) -A)/b**2 + 2B/b**3) / F  # (1/F) is not included in the paper, Eq. 24
+    # print(f"r_bar = {(big_a/a**2 + (phi_zero-big_a)/b**2 + 2*big_b/b**3)/big_F}")
+    # # P = B - a A - b (phi(0) - A)
+    # print(f"P = {big_b - a*big_a - b*(phi_zero-big_a)}")
+    # # A * np.exp(- a * rhoz) + (B * rhoz + phi_zero - A) * np.exp(- b * rhoz)
     return big_a * np.exp(-a * rhoz) + (big_b * rhoz + phi_zero - big_a) * np.exp(
         -b * rhoz
     )

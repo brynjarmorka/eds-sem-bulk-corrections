@@ -77,3 +77,27 @@ def get_C_A_Z_arrays(
         list_Z.append(hs.material.elements[element].General_properties.Z)
         list_A.append(hs.material.elements[element].General_properties.atomic_weight)
     return np.array(list_C), np.array(list_A), np.array(list_Z)
+
+
+def wt2at(*,wt: np.ndarray, atwt: np.ndarray) -> np.ndarray:
+        # at%_1 = (wt%_1 / at_wt_1) / (wt%_1 / at_wt_1 + wt%_2 / at_wt_2)
+        at1 = (wt[0] / atwt[0]) / (wt[0] / atwt[0] + wt[1] / atwt[1])
+        at2 = 1 - at1
+        return np.array([at1, at2])
+
+
+def at2wt(*, at: np.ndarray, atwt: np.ndarray) -> np.ndarray:
+        # wt%_1 = (at%_1 * at_wt_1) / (at%_1 * at_wt_1 + at%_2 * at_wt_2)
+        wt1 = (at[0] * atwt[0]) / (at[0] * atwt[0] + at[1] * atwt[1])
+        wt2 = 1 - wt1
+        return np.array([wt1, wt2])
+
+def calculate_atom_percent(*, wt_list, elements) -> np.ndarray:
+        atwt = [hs.material.elements[element].General_properties['atomic_weight'] for element in elements]
+        at = wt2at(wt=wt_list, atwt=atwt)
+        # print(f'{elements[0]} {at[0]:.2f} {elements[1]} {at[1]:.2f}')
+        return np.array(at)
+
+# calculate_atom_percent([0.45, 0.55], ['As', 'Ga'])
+# calculate_atom_percent([0.37, 0.63], ['Ga', 'Sb'])
+# calculate_atom_percent([.93, 0.07], ['Fe', 'C'])

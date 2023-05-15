@@ -285,7 +285,8 @@ def deceleration_factor_one_over_S(
     -----
     Equation (8) in the PAP-paper.
     """
-    v0 = e_c / u0
+    e0 = u0 * e_c
+    v0 = e0 / j
     return (
         u0
         / (v0 * m_big)
@@ -323,10 +324,10 @@ def deceleration_factor_one_over_S(
 ## (2) R - backscattering loss factor
 
 # - R is the backscatter loss factor
-# - $\bar{Z}_b$ is the mean atomic number of the backscattered electrons, weighted
-# - $\bar{\eta}$ is the mean backscattering coefficient
+# - $\\bar{Z}_b$ is the mean atomic number of the backscattered electrons, weighted
+# - $\\bar{\eta}$ is the mean backscattering coefficient
 
-# - $\bar{W}$ is
+# - $\\bar{W}$ is
 # - $G(U_0)$ is from Coulon and Zeller (28)
 # - $U_0$ is the overvoltage, $E_0/E_c$
 
@@ -359,7 +360,7 @@ def mean_atomic_number_Zb(*, array_C: np.ndarray, array_Z: np.ndarray) -> float:
 
 def mean_backscattering_coefficient_eta(*, zb: float) -> float:
     """
-    Calculate the mean backscattering coefficient, \bar{\eta}.
+    Calculate the mean backscattering coefficient, \\bar{\eta}.
     "The slight variation of the backscatter coefficient with energy has been neglected."
 
     Parameters
@@ -404,12 +405,12 @@ def backscattering_factor_R(
     -----
     Defined in Appendix 1 of the PAP-paper.
 
-    .. math:: R = 1 - \eta \bar{W} (1 - G(U_0)))
+    .. math:: R = 1 - \eta \\bar{W} (1 - G(U_0)))
     """
     zb = mean_atomic_number_Zb(array_C=array_C, array_Z=array_Z)
     eta = mean_backscattering_coefficient_eta(zb=zb)
 
-    # Calculate \bar{W} (which is work? I am not sure, but it is a constant only used here)
+    # Calculate \\bar{W} (which is work? I am not sure, but it is a constant only used here)
     w = 0.595 + eta / 3.7 + eta**4.55
 
     # Calculate G(U0), with the help of two intermediate functions
@@ -430,7 +431,7 @@ def area_F(
     array_A: np.ndarray,
     e0: float,
     line: str,
-    use_q: str = "multiply",
+    use_q: str = "divide",
 ) -> float:
     """
     Calculate the area F.
