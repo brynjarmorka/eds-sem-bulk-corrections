@@ -19,11 +19,6 @@ import numpy as np
 from PAP_functions.PAP_helper_functions import theoretical_energy
 
 
-# (1) 1/S - deceleration factor
-
-## (1a) Q(U) - the ionization cross section
-
-
 def set_m_small(*, line: str) -> float:
     """
     Gives the value of m_small for a given line.
@@ -87,12 +82,7 @@ def ionization_cross_section_Q(*, e0: float, line: str) -> float:
     e_c = theoretical_energy(line=line)
     m_small = set_m_small(line=line)
     u = e0 / e_c
-    # return np.exp(np.log(u) / (u**m_small * e_c**2))
-    # I do not remember why I had the np.exp(...)
     return np.log(u) / (u**m_small * e_c**2)
-
-
-### (1b) dE/drhos - energy loss for the electrons
 
 
 def mean_atomic_mass_M(
@@ -321,17 +311,6 @@ def deceleration_factor_one_over_S(
     )
 
 
-## (2) R - backscattering loss factor
-
-# - R is the backscatter loss factor
-# - $\\bar{Z}_b$ is the mean atomic number of the backscattered electrons, weighted
-# - $\\bar{\eta}$ is the mean backscattering coefficient
-
-# - $\\bar{W}$ is
-# - $G(U_0)$ is from Coulon and Zeller (28)
-# - $U_0$ is the overvoltage, $E_0/E_c$
-
-
 def mean_atomic_number_Zb(*, array_C: np.ndarray, array_Z: np.ndarray) -> float:
     """
     Calculate the (weighted) mean atomic number of the backscattered electrons.
@@ -422,8 +401,6 @@ def backscattering_factor_R(
 
 
 ## Putting 1/S and R together
-
-
 def area_F(
     *,
     array_C: np.ndarray,
@@ -464,7 +441,7 @@ def area_F(
     This implies that $(R/S) = Q(U) F$.
     However, equation (13) states that $F = (R/S) \cdot Q(U)$, which is a contradiction to the previous equations.
 
-    It is assumed that Eq. (13) is correct, but the function allows for the user to choose how to use $Q(U)$.
+    It is assumed that Eq. (13) is incorrect, but the function allows for the user to choose how to use $Q(U)$.
     """
     e_c = theoretical_energy(line=line)
     u = e0 / e_c
