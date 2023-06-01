@@ -24,3 +24,5 @@ The XPP corrections are used in AZtec, the EDS software from Oxford Instruments 
 The XPP model is described in (PAP_algorithm.ipynb), and applied to the EDS data.
 Plots from the model are given in (PAP_plots.ipynb).
 The equations in the model are avaliable in Python files in the folder "PAP_functions".
+
+The EDS data acquired in this work on GaAs and GaSb is avaliable in the folder "data/exports".
